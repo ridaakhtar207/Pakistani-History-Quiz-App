@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pakistan History Quiz</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #ffffff;
+    --ink: #111827;
+    --muted: #6b7280;
+    --line: #e5e7eb;
+    --brand: #0f766e;
+    --brand-soft: #ccfbf1;
+    --ok: #15803d;
+    --ok-soft: #dcfce7;
+    --bad: #b91c1c;
+    --bad-soft: #fee2e2;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 32px 16px 64px;
+    font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(160deg, #0f172a 0%, #134e4a 100%);
+    color: #e5e7eb;
+    line-height: 1.55;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  header h1 {
+    margin: 0 0 6px;
+    font-size: clamp(1.5rem, 4vw, 2.1rem);
+    letter-spacing: -0.02em;
+  }
+  header p { margin: 0; color: #a5b4fc; font-size: 0.95rem; }
+  .panel {
+    background: var(--card);
+    color: var(--ink);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 12px 30px rgba(0,0,0,.25);
+  }
+  .stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .meter {
+    flex: 1 1 260px;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--line);
+    overflow: hidden;
+    min-width: 200px;
+  }
+  .meter > span {
+    display: block;
+    height: 100%;
+    width: 0%;
+    background: var(--brand);
+    transition: width .25s ease;
+  }
+  .tally { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+  .tally .score { color: var(--brand); font-size: 1.15rem; }
+  .progress-text { color: var(--muted); font-size: .9rem; }
+  .q {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-top: 16px;
+    background: #fff;
+    color: var(--ink);
+  }
+  .q .q-text { color: var(--ink); }
+  .opt { color: var(--ink); }
+  .feedback { color: var(--ink); }
+  .q.done { background: #fafafa; }
+  .q-head { display: flex; gap: 10px; align-items: baseline; }
+  .q-num {
+    flex: 0 0 auto;
+    background: var(--brand-soft);
+    color: var(--brand);
+    font-weight: 700;
+    font-size: .82rem;
+    padding: 3px 10px;
+    border-radius: 999px;
+  }
+  .q-text { margin: 0; font-weight: 600; }
+  .opts { margin: 14px 0 0; display: grid; gap: 9px; }
+  .opt {
+    display: flex;
+    gap: 11px;
+    align-items: flex-start;
+    padding: 11px 13px;
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+    background: #fff;
+  }
+  .opt:hover { border-color: var(--brand); background: #f6fffd; }
+  .opt input { margin: 3px 0 0; accent-color: var(--brand); cursor: pointer; }
+  .opt.sel { border-color: var(--brand); background: #f0fdfa; }
+  .opt.correct { border-color: var(--ok); background: var(--ok-soft); }
+  .opt.wrong { border-color: var(--bad); background: var(--bad-soft); }
+  .opt.locked { cursor: default; }
+  .opt.locked:hover { border-color: inherit; background: inherit; }
+  .mark { margin-left: auto; font-weight: 700; font-size: .9rem; white-space: nowrap; }
+  .opt.correct .mark { color: var(--ok); }
+  .opt.wrong .mark { color: var(--bad); }
+  .feedback {
+    display: none;
+    margin-top: 13px;
+    padding: 11px 13px;
+    border-radius: 10px;
+    font-size: .93rem;
+    border-left: 4px solid transparent;
+  }
+  .feedback.show { display: block; }
+  .feedback.ok { background: var(--ok-soft); border-left-color: var(--ok); }
+  .feedback.bad { background: var(--bad-soft); border-left-color: var(--bad); }
+  .feedback b { display: block; margin-bottom: 3px; }
+  .actions { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; }
+  button {
+    font: inherit;
+    font-weight: 600;
+    border: 0;
+    border-radius: 9px;
+    padding: 10px 18px;
+    cursor: pointer;
+    transition: filter .15s, opacity .15s;
+  }
+  button:hover:not(:disabled) { filter: brightness(1.07); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .primary { background: var(--brand); color: #fff; }
+  .ghost { background: #eef2f7; color: #374151; }
+  .result {
+    display: none;
+    margin-top: 20px;
+    text-align: center;
+    padding: 24px 18px;
+    border-radius: var(--radius);
+    background: var(--brand-soft);
+    color: #134e4a;
+  }
+  .result.show { display: block; }
+  .result .big { font-size: 1.5rem; font-weight: 800; }
+  .result p { margin: 8px 0 0; }
+  .hint { color: var(--muted); font-size: .86rem; margin-top: 12px; }
+  @media (max-width: 520px) {
+    .panel { padding: 15px; }
+    .q { padding: 14px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Pakistan History Quiz</h1>
+    <p>Five multiple-choice questions · pick an option, then check your answer.</p>
+  </header>
+
+  <section class="panel" aria-label="Quiz status">
+    <div class="stats">
+      <div class="meter" role="progressbar" aria-label="Questions answered" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0">
+        <span id="bar"></span>
+      </div>
+      <div class="tally">
+        <span class="score"><span id="score">0</span>/<span id="total">5</span></span>
+        <span class="progress-text"> correct · <span id="answered">0</span>/<span id="total2">5</span> checked</span>
+      </div>
+    </div>
+  </section>
+
+  <main id="quiz" aria-label="Questions"></main>
+
+  <section class="result" id="result" role="status" aria-live="polite">
+    <div class="big" id="resultTitle"></div>
+    <p id="resultMsg"></p>
+    <div class="actions" style="justify-content:center;margin-top:16px">
+      <button class="primary" id="restart">Try again</button>
+    </div>
+  </section>
+</div>
+
+<script>
+const QUESTIONS = [
+  {
+    q: "The Lahore Resolution, which demanded \"a separate state\" for Muslims in the north-western and eastern provinces of British India, was passed at the Muslim League's special annual session on:",
+    options: [
+      "23 March 1940, at the Minar-e-Pakistan grounds, Lahore",
+      "14 August 1947, at the Minar-e-Pakistan grounds, Lahore",
+      "30 December 1906, at Dacca (Dhaka)",
+      "27 August 1947, at Delhi"
+    ],
+    answer: 0,
+    why: "Adopted on 23 March 1940 at Minar-e-Pakistan, Lahore — the date is now observed as Pakistan Day."
+  },
+  {
+    q: "The All-India Muslim League was founded on 30 December 1906 at:",
+    options: ["Lucknow", "Aligarh", "Dacca (Dhaka)", "Karachi"],
+    answer: 2,
+    why: "Founded at Dacca (Dhaka) on 30 December 1906; Muhammad Ali Jinnah became its Secretary-General."
+  },
+  {
+    q: "Who was appointed the first Governor-General of Pakistan on 14 August 1947?",
+    options: ["Liaquat Ali Khan", "Muhammad Ali Jinnah", "Muhammad Ali Bogra", "Rabindranath Tagore"],
+    answer: 1,
+    why: "Jinnah held the post until his death on 11 September 1948; Liaquat Ali Khan was the first Prime Minister."
+  },
+  {
+    q: "Who served as Commander-in-Chief of the Pakistan Army during the 1971 war?",
+    options: [
+      "General Ayub Khan",
+      "General Agha Muhammad Yahya Khan",
+      "General Tikka Khan",
+      "General M. A. G. Osmani"
+    ],
+    answer: 3,
+    why: "Osmani led the army in both the 1965 and 1971 wars; Agha Muhammad Yahya Khan took over in 1971."
+  },
+  {
+    q: "Pakistan conducted its first nuclear test in May 1998 at:",
+    options: ["Chagai, Balochistan", "Pokhran, Rajasthan", "Kahuta, Punjab", "Kamra, Punjab"],
+    answer: 0,
+    why: "Chagai-I — Pokhran (option B) is India's test site; Kahuta and Kamra are adjoining research and missile facilities."
+  }
+];
+
+const quizEl = document.getElementById("quiz");
+const barEl = document.getElementById("bar");
+const scoreEl = document.getElementById("score");
+const answeredEl = document.getElementById("answered");
+const resultEl = document.getElementById("result");
+const resultTitle = document.getElementById("resultTitle");
+const resultMsg = document.getElementById("resultMsg");
+const meterEl = document.querySelector(".meter");
+
+let checked = [];   // one entry per question: true once checked
+let correct = [];   // one entry per question: true if correct
+
+function render() {
+  checked = QUESTIONS.map(() => false);
+  correct = QUESTIONS.map(() => false);
+  quizEl.innerHTML = "";
+  resultEl.classList.remove("show");
+
+  QUESTIONS.forEach((item, i) => {
+    const card = document.createElement("section");
+    card.className = "q";
+    card.id = "q" + i;
+
+    const head = document.createElement("div");
+    head.className = "q-head";
+    const num = document.createElement("span");
+    num.className = "q-num";
+    num.textContent = "Q" + (i + 1);
+    const text = document.createElement("p");
+    text.className = "q-text";
+    text.id = "qtext" + i;
+    text.textContent = item.q;
+    head.append(num, text);
+
+    const opts = document.createElement("div");
+    opts.className = "opts";
+    opts.setAttribute("role", "radiogroup");
+    opts.setAttribute("aria-labelledby", "qtext" + i);
+
+    item.options.forEach((label, j) => {
+      const wrap = document.createElement("label");
+      wrap.className = "opt";
+
+      const input = document.createElement("input");
+      input.type = "radio";
+      input.name = "q" + i;
+      input.value = String(j);
+      input.addEventListener("change", () => select(i, j, opts));
+
+      const span = document.createElement("span");
+      span.textContent = label;
+
+      const mark = document.createElement("span");
+      mark.className = "mark";
+
+      wrap.append(input, span, mark);
+      opts.appendChild(wrap);
+    });
+
+    const fb = document.createElement("div");
+    fb.className = "feedback";
+    fb.id = "fb" + i;
+
+    const actions = document.createElement("div");
+    actions.className = "actions";
+    const checkBtn = document.createElement("button");
+    checkBtn.className = "primary";
+    checkBtn.textContent = "Check answer";
+    checkBtn.id = "check" + i;
+    checkBtn.addEventListener("click", () => check(i));
+    actions.appendChild(checkBtn);
+
+    card.append(head, opts, fb, actions);
+    quizEl.appendChild(card);
+  });
+
+  update();
+}
+
+function select(i, j, opts) {
+  if (checked[i]) return;
+  Array.from(opts.children).forEach((el, k) => {
+    el.classList.toggle("sel", k === j);
+  });
+}
+
+function check(i) {
+  if (checked[i]) return;
+  const card = document.getElementById("q" + i);
+  const opts = card.querySelector(".opts");
+  const picked = opts.querySelector("input:checked");
+  const fb = document.getElementById("fb" + i);
+  const btn = document.getElementById("check" + i);
+
+  if (!picked) {
+    fb.className = "feedback show bad";
+    fb.innerHTML = "<b>Pick an option first.</b> Select one of the four choices above, then check your answer.";
+    return;
+  }
+
+  const chosen = Number(picked.value);
+  const isRight = chosen === QUESTIONS[i].answer;
+  checked[i] = true;
+  correct[i] = isRight;
+
+  Array.from(opts.children).forEach((el, k) => {
+    el.classList.add("locked");
+    el.querySelector("input").disabled = true;
+    const mark = el.querySelector(".mark");
+    if (k === QUESTIONS[i].answer) {
+      el.classList.add("correct");
+      mark.textContent = "✓ Correct answer";
+    } else if (k === chosen) {
+      el.classList.add("wrong");
+      mark.textContent = "✕ Your choice";
+    }
+  });
+
+  card.classList.add("done");
+  fb.className = "feedback show " + (isRight ? "ok" : "bad");
+  fb.innerHTML = isRight
+    ? "<b>Correct.</b>" + QUESTIONS[i].why
+    : "<b>Not quite.</b> The correct answer is: " + QUESTIONS[i].options[QUESTIONS[i].answer] + ". " + QUESTIONS[i].why;
+
+  btn.textContent = "Checked";
+  btn.disabled = true;
+  update();
+}
+
+function update() {
+  const done = checked.filter(Boolean).length;
+  const right = correct.filter(Boolean).length;
+  scoreEl.textContent = right;
+  answeredEl.textContent = done;
+  document.getElementById("total2").textContent = QUESTIONS.length;
+  barEl.style.width = (done / QUESTIONS.length) * 100 + "%";
+  meterEl.setAttribute("aria-valuenow", done);
+
+  if (done === QUESTIONS.length) {
+    const pct = Math.round((right / QUESTIONS.length) * 100);
+    resultEl.classList.add("show");
+    if (right === QUESTIONS.length) {
+      resultTitle.textContent = "Perfect score: " + right + "/" + QUESTIONS.length + " (" + pct + "%)";
+      resultMsg.textContent = "Flawless work — every answer matches the accepted historical account.";
+    } else if (right >= Math.ceil(QUESTIONS.length * 0.6)) {
+      resultTitle.textContent = "Well done: " + right + "/" + QUESTIONS.length + " (" + pct + "%)";
+      resultMsg.textContent = "A solid result. Review the explanations above for the ones you missed.";
+    } else {
+      resultTitle.textContent = "Score: " + right + "/" + QUESTIONS.length + " (" + pct + "%)";
+      resultMsg.textContent = "Worth a second pass — read the explanations above, then try again.";
+    }
+    resultEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+}
+
+document.getElementById("restart").addEventListener("click", () => {
+  render();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+render();
+</script>
+</body>
+</html>
